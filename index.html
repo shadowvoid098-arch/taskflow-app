@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
+<meta name="theme-color" content="#4F6EF7"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="TaskFlow"/>
+<meta name="description" content="Personal task manager with reminders and themes"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icons/icon-192.png"/>
+<title>TaskFlow</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --accent:#4F6EF7;--accent2:#7C3AED;
+  --bg:#F7F6F3;--surface:#FFFFFF;--surface2:#F0EEE9;
+  --text:#111110;--text2:#5C5A56;--text3:#9C9A96;
+  --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.16);
+  --danger:#E24B4A;--danger-bg:#FEF1F1;--success:#22C55E;
+  --shadow:0 2px 12px rgba(0,0,0,0.07);--shadow-lg:0 8px 32px rgba(0,0,0,0.12);
+  --r:12px;--r-sm:8px;--sidebar:265px;
+}
+[data-theme="dark"]{
+  --bg:#0F0F10;--surface:#1A1A1C;--surface2:#242426;
+  --text:#F2F0EB;--text2:#8A8884;--text3:#4A4845;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.15);
+  --danger-bg:#2A1515;
+  --shadow:0 2px 12px rgba(0,0,0,0.3);--shadow-lg:0 8px 32px rgba(0,0,0,0.5);
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;font-size:15px;line-height:1.6;transition:background .25s,color .25s;-webkit-tap-highlight-color:transparent;}
+
+/* ── Layout ── */
+.layout{display:flex;min-height:100vh;min-height:100dvh;}
+.sidebar{width:var(--sidebar);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;height:100dvh;z-index:100;transition:transform .3s cubic-bezier(.4,0,.2,1),background .25s;overflow-y:auto;}
+.main{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column;min-height:100vh;min-height:100dvh;}
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%);}
+  .sidebar.open{transform:translateX(0);box-shadow:var(--shadow-lg);}
+  .main{margin-left:0;}
+  .overlay{display:block!important;}
+}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:99;backdrop-filter:blur(3px);}
+
+/* ── Sidebar ── */
+.sb-header{padding:24px 20px 18px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-icon{width:38px;height:38px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:11px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;font-weight:600;flex-shrink:0;}
+.logo-name{font-size:18px;font-weight:600;letter-spacing:-.4px;}
+.logo-tag{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:1px;}
+.nav{padding:14px 10px;flex:1;}
+.nav-section{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);padding:0 10px;margin:14px 0 5px;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:var(--r-sm);cursor:pointer;color:var(--text2);font-size:13.5px;transition:all .15s;user-select:none;border:none;background:none;width:100%;text-align:left;font-family:'Sora',sans-serif;}
+.nav-item:hover{background:var(--surface2);color:var(--text);}
+.nav-item.active{background:linear-gradient(135deg,rgba(79,110,247,.13),rgba(124,58,237,.08));color:var(--accent);font-weight:500;}
+.nav-item .ni{width:20px;text-align:center;font-size:15px;flex-shrink:0;}
+.nav-badge{margin-left:auto;background:var(--accent);color:#fff;border-radius:999px;font-size:10px;font-family:'JetBrains Mono',monospace;padding:1px 7px;font-weight:500;min-width:22px;text-align:center;}
+.nav-badge.purple{background:var(--accent2);}
+.sb-footer{padding:14px 10px;border-top:1px solid var(--border);flex-shrink:0;}
+.theme-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.theme-label{font-size:11px;color:var(--text3);flex-shrink:0;}
+.theme-seg{display:flex;background:var(--surface2);border-radius:999px;padding:3px;gap:2px;flex:1;}
+.t-btn{flex:1;border:none;background:none;cursor:pointer;font-size:12px;padding:5px 4px;border-radius:999px;color:var(--text2);transition:all .15s;font-family:'Sora',sans-serif;white-space:nowrap;}
+.t-btn.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow);}
+.install-btn{display:none;width:100%;border:1px solid var(--border2);background:var(--surface2);color:var(--text);border-radius:var(--r-sm);padding:9px 14px;font-size:13px;font-family:'Sora',sans-serif;cursor:pointer;text-align:left;transition:all .15s;}
+.install-btn:hover{background:var(--surface);border-color:var(--accent);color:var(--accent);}
+.install-btn.visible{display:flex;align-items:center;gap:8px;}
+
+/* ── Topbar mobile ── */
+.topbar{display:none;align-items:center;padding:14px 16px;padding-top:calc(14px + env(safe-area-inset-top));background:var(--surface);border-bottom:1px solid var(--border);gap:12px;position:sticky;top:0;z-index:50;}
+@media(max-width:768px){.topbar{display:flex;}}
+.menu-btn{background:none;border:none;font-size:22px;cursor:pointer;color:var(--text);padding:2px;line-height:1;width:32px;text-align:center;}
+.topbar-logo{font-size:17px;font-weight:600;flex:1;letter-spacing:-.3px;}
+.topbar-actions{display:flex;gap:6px;align-items:center;}
+.tb-icon-btn{background:none;border:1px solid var(--border);border-radius:999px;padding:5px 10px;font-size:12px;cursor:pointer;color:var(--text2);font-family:'Sora',sans-serif;transition:all .15s;}
+.tb-icon-btn:hover{border-color:var(--border2);color:var(--text);}
+
+/* ── Content ── */
+.content{flex:1;padding:32px 36px;max-width:820px;}
+@media(max-width:1024px){.content{padding:24px 24px;}}
+@media(max-width:768px){.content{padding:16px 14px;padding-bottom:32px;}}
+.page-head{margin-bottom:24px;}
+.page-title{font-size:24px;font-weight:600;letter-spacing:-.5px;}
+.page-sub{font-size:12px;color:var(--text3);margin-top:3px;font-family:'JetBrains Mono',monospace;}
+
+/* ── Stats ── */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:22px;}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;transition:background .25s;}
+.stat-n{font-size:26px;font-weight:600;letter-spacing:-1px;font-family:'JetBrains Mono',monospace;}
+.stat-l{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-top:1px;}
+.stat.blue .stat-n{color:var(--accent);}
+.stat.green .stat-n{color:var(--success);}
+.stat.red .stat-n{color:var(--danger);}
+
+/* ── Alert ── */
+.alert{background:var(--danger-bg);border:1px solid rgba(226,75,74,.25);border-radius:var(--r);padding:12px 14px;margin-bottom:18px;display:none;align-items:flex-start;gap:10px;flex-wrap:wrap;animation:slideIn .25s ease;}
+.alert.show{display:flex;}
+@keyframes slideIn{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
+.alert-msg{flex:1;font-size:13px;color:var(--danger);font-weight:500;line-height:1.4;}
+.pill{background:none;border:1px solid var(--border2);border-radius:999px;padding:4px 12px;font-size:12px;cursor:pointer;color:var(--text2);font-family:'Sora',sans-serif;transition:all .15s;white-space:nowrap;}
+.pill:hover{background:var(--surface2);}
+
+/* ── Add card ── */
+.add-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-bottom:20px;box-shadow:var(--shadow);transition:background .25s;}
+.add-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:12px;}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+.row:last-child{margin-bottom:0;}
+.inp{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--r-sm);padding:0 12px;height:40px;font-size:14px;font-family:'Sora',sans-serif;outline:none;transition:border .15s,background .25s;}
+.inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,110,247,.1);}
+.inp::placeholder{color:var(--text3);}
+.inp-grow{flex:1;min-width:160px;}
+.inp-sm{width:125px;}
+.inp-time{width:118px;font-family:'JetBrains Mono',monospace;}
+select.inp option{background:var(--surface);color:var(--text);}
+.add-btn{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;border-radius:var(--r-sm);padding:0 18px;height:40px;font-size:14px;font-weight:500;cursor:pointer;font-family:'Sora',sans-serif;white-space:nowrap;transition:opacity .15s,transform .1s;}
+.add-btn:hover{opacity:.9;}
+.add-btn:active{transform:scale(.97);}
+
+/* ── Filter pills ── */
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;}
+.fp{border:1px solid var(--border);background:transparent;color:var(--text2);border-radius:999px;padding:5px 13px;font-size:12px;cursor:pointer;font-family:'Sora',sans-serif;transition:all .15s;}
+.fp:hover{border-color:var(--border2);color:var(--text);}
+.fp.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:500;}
+
+/* ── Tasks ── */
+.task-list{display:flex;flex-direction:column;gap:8px;}
+.task{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:13px 14px;display:flex;align-items:flex-start;gap:11px;transition:all .2s;animation:fadeUp .2s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.task:hover{border-color:var(--border2);box-shadow:var(--shadow);}
+.task.done{opacity:.4;}
+.task.ringing{border-color:var(--danger)!important;animation:ringpulse .7s infinite alternate;}
+@keyframes ringpulse{from{background:var(--surface);}to{background:var(--danger-bg);}}
+.task input[type=checkbox]{width:18px;height:18px;cursor:pointer;accent-color:var(--accent);margin-top:2px;flex-shrink:0;}
+.task-body{flex:1;min-width:0;}
+.task-name{font-size:14px;color:var(--text);line-height:1.5;word-break:break-word;}
+.task.done .task-name{text-decoration:line-through;}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;}
+.tag{font-size:11px;padding:2px 8px;border-radius:999px;font-weight:500;font-family:'JetBrains Mono',monospace;white-space:nowrap;}
+.tw{background:rgba(56,130,221,.1);color:#185FA5;}
+.tp{background:rgba(124,58,237,.1);color:#6D28D9;}
+.th{background:rgba(34,197,94,.1);color:#15803D;}
+.to{background:rgba(107,114,128,.1);color:#374151;}
+.t-hi{background:rgba(226,75,74,.1);color:#B91C1C;}
+.t-me{background:rgba(245,158,11,.1);color:#92400E;}
+.t-lo{background:rgba(34,197,94,.1);color:#15803D;}
+.t-time{background:var(--surface2);color:var(--text2);}
+.t-ring{background:rgba(226,75,74,.15);color:var(--danger);}
+[data-theme=dark] .tw{background:rgba(56,130,221,.2);color:#60A5FA;}
+[data-theme=dark] .tp{background:rgba(124,58,237,.2);color:#A78BFA;}
+[data-theme=dark] .th{background:rgba(34,197,94,.18);color:#4ADE80;}
+[data-theme=dark] .to{background:rgba(156,163,175,.15);color:#9CA3AF;}
+[data-theme=dark] .t-hi{background:rgba(226,75,74,.2);color:#FCA5A5;}
+[data-theme=dark] .t-me{background:rgba(245,158,11,.18);color:#FCD34D;}
+[data-theme=dark] .t-lo{background:rgba(34,197,94,.18);color:#4ADE80;}
+.del-btn{background:none;border:none;color:var(--text3);cursor:pointer;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .15s;flex-shrink:0;}
+.del-btn:hover{background:var(--surface2);color:var(--danger);}
+.empty{text-align:center;padding:44px 20px;color:var(--text3);}
+.empty-i{font-size:32px;margin-bottom:10px;opacity:.4;}
+.empty-t{font-size:14px;}
+
+/* ── Install banner ── */
+.install-banner{display:none;background:linear-gradient(135deg,rgba(79,110,247,.08),rgba(124,58,237,.06));border:1px solid rgba(79,110,247,.2);border-radius:var(--r);padding:14px 16px;margin-bottom:18px;align-items:center;gap:12px;flex-wrap:wrap;}
+.install-banner.show{display:flex;}
+.install-banner-text{flex:1;font-size:13px;color:var(--text);}
+.install-banner-text strong{display:block;font-weight:500;margin-bottom:2px;}
+.install-banner-text span{font-size:12px;color:var(--text2);}
+.inst-btn{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;border-radius:var(--r-sm);padding:8px 16px;font-size:13px;font-weight:500;cursor:pointer;font-family:'Sora',sans-serif;white-space:nowrap;}
+.inst-close{background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;padding:0 2px;}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px;}
+
+/* ── Progress bar ── */
+.progress-wrap{background:var(--surface2);border-radius:999px;height:5px;margin-bottom:20px;overflow:hidden;}
+.progress-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:999px;transition:width .5s ease;width:0%;}
+</style>
+</head>
+<body>
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<div class="layout">
+
+<!-- ════ SIDEBAR ════ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sb-header">
+    <div class="logo">
+      <div class="logo-icon">✓</div>
+      <div>
+        <div class="logo-name">TaskFlow</div>
+        <div class="logo-tag">personal · v1.0</div>
+      </div>
+    </div>
+  </div>
+
+  <nav class="nav">
+    <div class="nav-section">Views</div>
+    <button class="nav-item active" onclick="setNav('all',this)" data-f="all">
+      <span class="ni">◈</span> All tasks
+      <span class="nav-badge" id="nb-all">0</span>
+    </button>
+    <button class="nav-item" onclick="setNav('active',this)" data-f="active">
+      <span class="ni">○</span> Active
+      <span class="nav-badge purple" id="nb-active">0</span>
+    </button>
+    <button class="nav-item" onclick="setNav('done',this)" data-f="done">
+      <span class="ni">✓</span> Completed
+    </button>
+    <button class="nav-item" onclick="setNav('reminder',this)" data-f="reminder">
+      <span class="ni">⏰</span> With reminder
+    </button>
+
+    <div class="nav-section">Priority</div>
+    <button class="nav-item" onclick="setNav('high',this)" data-f="high">
+      <span class="ni">🔴</span> High priority
+    </button>
+    <button class="nav-item" onclick="setNav('med',this)" data-f="med">
+      <span class="ni">🟡</span> Medium
+    </button>
+    <button class="nav-item" onclick="setNav('low',this)" data-f="low">
+      <span class="ni">🟢</span> Low
+    </button>
+
+    <div class="nav-section">Category</div>
+    <button class="nav-item" onclick="setNav('work',this)" data-f="work">
+      <span class="ni">💼</span> Work
+    </button>
+    <button class="nav-item" onclick="setNav('personal',this)" data-f="personal">
+      <span class="ni">👤</span> Personal
+    </button>
+    <button class="nav-item" onclick="setNav('health',this)" data-f="health">
+      <span class="ni">💚</span> Health
+    </button>
+    <button class="nav-item" onclick="setNav('other',this)" data-f="other">
+      <span class="ni">📌</span> Other
+    </button>
+  </nav>
+
+  <div class="sb-footer">
+    <div class="theme-row">
+      <span class="theme-label">Theme</span>
+      <div class="theme-seg">
+        <button class="t-btn" id="tb-light" onclick="setTheme('light')">☀ Light</button>
+        <button class="t-btn active" id="tb-system" onclick="setTheme('system')">◐ Auto</button>
+        <button class="t-btn" id="tb-dark" onclick="setTheme('dark')">☾ Dark</button>
+      </div>
+    </div>
+    <button class="install-btn" id="sb-install-btn" onclick="installApp()">
+      <span>⬇</span> Install App
+    </button>
+  </div>
+</aside>
+
+<!-- ════ MAIN ════ -->
+<div class="main">
+
+  <!-- Mobile topbar -->
+  <div class="topbar">
+    <button class="menu-btn" onclick="openSidebar()">☰</button>
+    <span class="topbar-logo">TaskFlow</span>
+    <div class="topbar-actions">
+      <button class="tb-icon-btn" id="mb-install" onclick="installApp()" style="display:none">⬇ Install</button>
+      <button class="tb-icon-btn" onclick="cycleTheme()" id="mb-theme">◐</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="page-head">
+      <div class="page-title" id="page-title">All tasks</div>
+      <div class="page-sub" id="page-date"></div>
+    </div>
+
+    <!-- Install banner -->
+    <div class="install-banner" id="install-banner">
+      <div class="install-banner-text">
+        <strong>Install TaskFlow</strong>
+        <span>Add to your home screen or desktop for quick access — works offline too!</span>
+      </div>
+      <button class="inst-btn" onclick="installApp()">Install now</button>
+      <button class="inst-close" onclick="dismissInstall()">✕</button>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats">
+      <div class="stat blue"><div class="stat-n" id="s-total">0</div><div class="stat-l">Total</div></div>
+      <div class="stat green"><div class="stat-n" id="s-done">0</div><div class="stat-l">Done</div></div>
+      <div class="stat red"><div class="stat-n" id="s-left">0</div><div class="stat-l">Left</div></div>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-wrap"><div class="progress-bar" id="prog-bar"></div></div>
+
+    <!-- Alert -->
+    <div class="alert" id="alert-bar">
+      <span style="font-size:18px;flex-shrink:0;">🔔</span>
+      <span class="alert-msg" id="alert-text">Reminder!</span>
+      <button class="pill" onclick="snoozeAll()">Snooze 5 min</button>
+      <button class="pill" onclick="dismissAll()">Dismiss</button>
+    </div>
+
+    <!-- Add form -->
+    <div class="add-card">
+      <div class="add-title">New task</div>
+      <div class="row">
+        <input class="inp inp-grow" type="text" id="task-input" placeholder="What do you need to do?" autocomplete="off"/>
+      </div>
+      <div class="row">
+        <select class="inp inp-sm" id="cat-sel">
+          <option value="work">💼 Work</option>
+          <option value="personal" selected>👤 Personal</option>
+          <option value="health">💚 Health</option>
+          <option value="other">📌 Other</option>
+        </select>
+        <select class="inp inp-sm" id="pri-sel">
+          <option value="high">🔴 High</option>
+          <option value="med" selected>🟡 Medium</option>
+          <option value="low">🟢 Low</option>
+        </select>
+        <input class="inp inp-time" type="time" id="time-inp" title="Reminder time"/>
+        <button class="add-btn" onclick="addTask()">+ Add</button>
+      </div>
+    </div>
+
+    <!-- Filter pills -->
+    <div class="filters">
+      <button class="fp active" onclick="setFilter('all',this)">All</button>
+      <button class="fp" onclick="setFilter('active',this)">Active</button>
+      <button class="fp" onclick="setFilter('done',this)">Done</button>
+      <button class="fp" onclick="setFilter('reminder',this)">⏰ Reminders</button>
+      <button class="fp" onclick="setFilter('high',this)">🔴 High</button>
+    </div>
+
+    <!-- Tasks -->
+    <div class="task-list" id="task-list"></div>
+  </div>
+</div>
+</div><!-- layout -->
+
+<script>
+// ── Service Worker ──
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+
+// ── Audio ──
+let _ac=null;
+function getAC(){if(!_ac)_ac=new(window.AudioContext||window.webkitAudioContext)();return _ac;}
+function playRing(){
+  try{
+    const a=getAC();
+    [523,659,784,1047,784,1047].forEach((f,i)=>{
+      const o=a.createOscillator(),g=a.createGain();
+      o.connect(g);g.connect(a.destination);o.type='sine';o.frequency.value=f;
+      const t=a.currentTime+i*.18;
+      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.3,t+.03);g.gain.linearRampToValueAtTime(0,t+.16);
+      o.start(t);o.stop(t+.18);
+    });
+  }catch(e){}
+}
+function playDone(){
+  try{
+    const a=getAC();
+    [523,659,1047].forEach((f,i)=>{
+      const o=a.createOscillator(),g=a.createGain();
+      o.connect(g);g.connect(a.destination);o.type='sine';o.frequency.value=f;
+      const t=a.currentTime+i*.14;
+      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.22,t+.02);g.gain.linearRampToValueAtTime(0,t+.12);
+      o.start(t);o.stop(t+.14);
+    });
+  }catch(e){}
+}
+
+// ── Theme ──
+let theme='system';
+const sysDark=window.matchMedia('(prefers-color-scheme: dark)');
+function applyTheme(t){
+  const dark=t==='dark'||(t==='system'&&sysDark.matches);
+  dark?document.documentElement.setAttribute('data-theme','dark'):document.documentElement.removeAttribute('data-theme');
+  const mb=document.getElementById('mb-theme');
+  if(mb)mb.textContent=dark?'☾ Dark':'☀ Light';
+  const mc=document.querySelector('meta[name=theme-color]');
+  if(mc)mc.content=dark?'#1A1A1C':'#4F6EF7';
+}
+function setTheme(t){
+  theme=t;localStorage.setItem('tf-theme',t);
+  ['light','system','dark'].forEach(x=>{
+    const b=document.getElementById('tb-'+x);if(b)b.classList.toggle('active',x===t);
+  });
+  applyTheme(t);
+}
+function cycleTheme(){
+  const o=['light','system','dark'];
+  setTheme(o[(o.indexOf(theme)+1)%3]);
+}
+sysDark.addEventListener('change',()=>{if(theme==='system')applyTheme('system');});
+const savedTheme=localStorage.getItem('tf-theme')||'system';
+setTheme(savedTheme);
+
+// ── PWA Install ──
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();deferredPrompt=e;
+  const dismissed=localStorage.getItem('tf-install-dismissed');
+  if(!dismissed){
+    document.getElementById('install-banner').classList.add('show');
+  }
+  document.getElementById('sb-install-btn').classList.add('visible');
+  document.getElementById('mb-install').style.display='';
+});
+window.addEventListener('appinstalled',()=>{
+  deferredPrompt=null;
+  document.getElementById('install-banner').classList.remove('show');
+  document.getElementById('sb-install-btn').classList.remove('visible');
+  document.getElementById('mb-install').style.display='none';
+});
+async function installApp(){
+  if(!deferredPrompt){alert('To install:\n• Chrome/Edge: Click ⋮ menu → "Install app"\n• Safari iOS: Tap Share → "Add to Home Screen"\n• Firefox: Look for install icon in address bar');return;}
+  deferredPrompt.prompt();
+  const{outcome}=await deferredPrompt.userChoice;
+  if(outcome==='accepted')deferredPrompt=null;
+}
+function dismissInstall(){
+  document.getElementById('install-banner').classList.remove('show');
+  localStorage.setItem('tf-install-dismissed','1');
+}
+
+// ── Data (persisted) ──
+const DEFAULT_TASKS=[
+  {id:1,title:"Review today's schedule",cat:'work',pri:'high',done:false,time:'',ringing:false},
+  {id:2,title:'Drink 8 glasses of water',cat:'health',pri:'med',done:false,time:'',ringing:false},
+  {id:3,title:'Reply to emails',cat:'work',pri:'med',done:false,time:'',ringing:false},
+  {id:4,title:'Evening walk 30 min',cat:'health',pri:'low',done:false,time:'',ringing:false},
+  {id:5,title:'Call mom',cat:'personal',pri:'low',done:true,time:'',ringing:false}
+];
+function loadTasks(){
+  try{
+    const s=localStorage.getItem('tf-tasks');
+    if(s)return JSON.parse(s).map(t=>({...t,ringing:false}));
+  }catch(e){}
+  return DEFAULT_TASKS;
+}
+function saveTasks(){
+  try{localStorage.setItem('tf-tasks',JSON.stringify(tasks));}catch(e){}
+}
+let tasks=loadTasks();
+let filter='all';
+let nextId=Math.max(0,...tasks.map(t=>t.id))+1;
+
+// ── Date ──
+const now=new Date();
+document.getElementById('page-date').textContent=
+  now.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+// ── Sidebar ──
+function openSidebar(){
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('overlay').style.display='block';
+  document.body.style.overflow='hidden';
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').style.display='none';
+  document.body.style.overflow='';
+}
+
+// ── Filter ──
+const LABELS={all:'All tasks',active:'Active tasks',done:'Completed',reminder:'With reminder',high:'High priority',med:'Medium priority',low:'Low priority',work:'Work',personal:'Personal',health:'Health',other:'Other'};
+function setNav(f,btn){
+  filter=f;
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  syncFilterPills();
+  document.getElementById('page-title').textContent=LABELS[f]||f;
+  render();
+  if(window.innerWidth<=768)closeSidebar();
+}
+function setFilter(f,btn){
+  filter=f;
+  document.querySelectorAll('.fp').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.f===f));
+  document.getElementById('page-title').textContent=LABELS[f]||f;
+  render();
+}
+function syncFilterPills(){
+  document.querySelectorAll('.fp').forEach(b=>{
+    const m=b.getAttribute('onclick').match(/'([^']+)'/);
+    if(m)b.classList.toggle('active',m[1]===filter);
+  });
+}
+
+// ── Add ──
+function addTask(){
+  const inp=document.getElementById('task-input');
+  const title=inp.value.trim();if(!title)return;
+  tasks.unshift({id:nextId++,title,cat:document.getElementById('cat-sel').value,pri:document.getElementById('pri-sel').value,done:false,time:document.getElementById('time-inp').value,ringing:false});
+  inp.value='';document.getElementById('time-inp').value='';
+  saveTasks();render();
+}
+document.getElementById('task-input').addEventListener('keydown',e=>{if(e.key==='Enter')addTask();});
+
+// ── Toggle / Delete ──
+function toggle(id){
+  const t=tasks.find(t=>t.id===id);
+  if(t){t.done=!t.done;t.ringing=false;if(t.done)playDone();saveTasks();render();}
+}
+function del(id){
+  tasks=tasks.filter(t=>t.id!==id);saveTasks();render();
+}
+
+// ── Reminders ──
+function snoozeAll(){
+  tasks.forEach(t=>{
+    if(t.ringing){
+      t.ringing=false;
+      const s=new Date(Date.now()+5*60000);
+      t.time=s.getHours().toString().padStart(2,'0')+':'+s.getMinutes().toString().padStart(2,'0');
+    }
+  });
+  document.getElementById('alert-bar').classList.remove('show');
+  saveTasks();render();
+}
+function dismissAll(){
+  tasks.forEach(t=>{t.ringing=false;});
+  document.getElementById('alert-bar').classList.remove('show');
+  render();
+}
+function checkReminders(){
+  const n=new Date();
+  const hm=n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0');
+  let titles=[];
+  tasks.forEach(t=>{
+    if(!t.done&&t.time&&t.time===hm&&!t.ringing)t.ringing=true;
+    if(t.ringing)titles.push(t.title);
+  });
+  if(titles.length){
+    const bar=document.getElementById('alert-bar');
+    bar.classList.add('show');
+    document.getElementById('alert-text').textContent='Reminder: '+titles.join(', ');
+    playRing();render();
+  }
+}
+
+// ── Render ──
+function render(){
+  let v=tasks;
+  if(filter==='active')v=tasks.filter(t=>!t.done);
+  else if(filter==='done')v=tasks.filter(t=>t.done);
+  else if(filter==='reminder')v=tasks.filter(t=>t.time);
+  else if(['high','med','low'].includes(filter))v=tasks.filter(t=>t.pri===filter);
+  else if(['work','personal','health','other'].includes(filter))v=tasks.filter(t=>t.cat===filter);
+
+  const total=tasks.length,done=tasks.filter(t=>t.done).length,left=tasks.filter(t=>!t.done).length;
+  document.getElementById('s-total').textContent=total;
+  document.getElementById('s-done').textContent=done;
+  document.getElementById('s-left').textContent=left;
+  document.getElementById('nb-all').textContent=total;
+  document.getElementById('nb-active').textContent=left;
+
+  const pct=total>0?Math.round(done/total*100):0;
+  document.getElementById('prog-bar').style.width=pct+'%';
+
+  const list=document.getElementById('task-list');
+  if(!v.length){
+    list.innerHTML='<div class="empty"><div class="empty-i">✓</div><div class="empty-t">No tasks here. Add one above!</div></div>';
+    return;
+  }
+  const PL={high:'High',med:'Medium',low:'Low'};
+  const CTAG={work:'tw',personal:'tp',health:'th',other:'to'};
+  const PTAG={high:'t-hi',med:'t-me',low:'t-lo'};
+  list.innerHTML=v.map(t=>`
+    <div class="task ${t.done?'done':''} ${t.ringing?'ringing':''}">
+      <input type="checkbox" ${t.done?'checked':''} onchange="toggle(${t.id})"/>
+      <div class="task-body">
+        <div class="task-name">${escHtml(t.title)}</div>
+        <div class="tags">
+          <span class="tag ${CTAG[t.cat]}">${t.cat}</span>
+          <span class="tag ${PTAG[t.pri]}">${PL[t.pri]}</span>
+          ${t.time?`<span class="tag t-time">⏰ ${t.time}</span>`:''}
+          ${t.ringing?`<span class="tag t-ring">🔔 Ringing!</span>`:''}
+        </div>
+      </div>
+      <button class="del-btn" onclick="del(${t.id})" title="Delete">✕</button>
+    </div>
+  `).join('');
+}
+
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+render();
+setInterval(checkReminders,15000);
+checkReminders();
+</script>
+</body>
+</html>

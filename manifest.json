@@ -1,0 +1,18 @@
+{
+  "name": "TaskFlow - Personal Task Manager",
+  "short_name": "TaskFlow",
+  "description": "Your personal task manager with reminders and themes",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#F7F6F3",
+  "theme_color": "#4F6EF7",
+  "orientation": "any",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "categories": ["productivity", "utilities"],
+  "shortcuts": [
+    { "name": "Add Task", "url": "./index.html?action=add", "description": "Quickly add a new task" }
+  ]
+}
